@@ -14,5 +14,5 @@ def districts() -> list[dict]:
         group = group.copy()
         group["gap"] = group.estimated_demand - group.annual_capacity
         priority = group.sort_values("gap", ascending=False).iloc[0]
-        rows.append({"district": district, "priority_skill": priority.skill, "demand": int(group.estimated_demand.sum()), "capacity": int(group.annual_capacity.sum()), "gap": int(group.gap.sum()), "status": "Priority expansion" if priority.gap > 0 else "Within capacity"})
+        rows.append({"district": district, "priority_skill": priority.skill, "demand": int(group.estimated_demand.sum()), "capacity": int(group.annual_capacity.sum()), "gap": int(group.gap.sum()), "status": "Training capacity shortage" if priority.gap > 0 else "Within capacity"})
     return sorted(rows, key=lambda item: item["gap"], reverse=True)

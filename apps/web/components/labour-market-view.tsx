@@ -32,6 +32,7 @@ export default function LabourMarketView() {
   function selectFilter(setter: (value: string) => void, value: string) { setter(value); setPage(1); }
 
   return <section className="market-view">
+    <div className="section-banner"><span>Prototype mode · synthetic labour-market data. These are observed demo records, not live Maharashtra statistics.</span></div>
     <div className="market-toolbar"><label className="search-field"><Search size={17} /><input value={query} onChange={(event) => selectFilter(setQuery, event.target.value)} placeholder="Search role, company or skill" /></label><span className="filter-mark"><SlidersHorizontal size={16} /> {jobs?.total ?? "-"} matching signals</span></div>
     <div className="filter-row"><select aria-label="Domain" value={domain} onChange={(event) => selectFilter(setDomain, event.target.value)}><option value="">All domains</option>{options.domains.map((item) => <option key={item}>{item}</option>)}</select><select aria-label="Location" value={location} onChange={(event) => selectFilter(setLocation, event.target.value)}><option value="">All locations</option>{options.locations.map((item) => <option key={item}>{item}</option>)}</select><select aria-label="Seniority" value={seniority} onChange={(event) => selectFilter(setSeniority, event.target.value)}><option value="">All seniority levels</option>{options.seniorities.map((item) => <option key={item}>{item}</option>)}</select></div>
     {error && <div className="error-box">{error}</div>}

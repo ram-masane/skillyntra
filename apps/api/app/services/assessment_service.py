@@ -1,4 +1,5 @@
 import json
+from fastapi import HTTPException
 
 from app.database import connection
 
@@ -24,6 +25,8 @@ def ensure_demo_assessment() -> int:
 
 def create_assessment(title: str, course_id: int, passing_score: int, skills: list[str], questions: list[dict]) -> dict:
     with connection() as db:
+        if not db.execute("SELECT id FROM courses WHERE id = ? AND status = 'published'", (course_id,)).fetchone():
+            raise HTTPException(status_code=404, detail="Published course not found")
         cursor = db.execute("INSERT INTO assessments (title, course_id, passing_score, skills) VALUES (?, ?, ?, ?)", (title, course_id, passing_score, json.dumps(skills)))
         assessment_id = cursor.lastrowid
         for question in questions:
@@ -33,7 +36,14 @@ def create_assessment(title: str, course_id: int, passing_score: int, skills: li
 
 def get_assessment(assessment_id: int) -> dict:
     with connection() as db:
-        assessment = db.execute("SELECT * FROM assessments WHERE id = ?", (assessment_id,)).fetchone()
+        assessment = db.execute(
+            """
+            SELECT assessments.*, courses.name AS course_name, courses.partner
+            FROM assessments JOIN courses ON courses.id = assessments.course_id
+            WHERE assessments.id = ?
+            """,
+            (assessment_id,),
+        ).fetchone()
         questions = db.execute("SELECT * FROM assessment_questions WHERE assessment_id = ? ORDER BY id", (assessment_id,)).fetchall()
     if not assessment:
         return {}
@@ -43,6 +53,13 @@ def get_assessment(assessment_id: int) -> dict:
 def grade_assessment(assessment_id: int, student_id: str, answers: dict[int, str]) -> dict:
     with connection() as db:
         assessment = db.execute("SELECT * FROM assessments WHERE id = ?", (assessment_id,)).fetchone()
+        if assessment is None:
+            raise HTTPException(status_code=404, detail="Assessment not found")
+        if not db.execute(
+            "SELECT 1 FROM course_enrollments WHERE student_id = ? AND course_id = ?",
+            (student_id, assessment["course_id"]),
+        ).fetchone():
+            raise HTTPException(status_code=403, detail="Enroll in the course before taking this assessment")
         questions = db.execute("SELECT * FROM assessment_questions WHERE assessment_id = ? ORDER BY id", (assessment_id,)).fetchall()
         correct = [q for q in questions if answers.get(q["id"]) == q["answer"]]
         score = round(len(correct) / max(1, len(questions)) * 100)
@@ -51,5 +68,5 @@ def grade_assessment(assessment_id: int, student_id: str, answers: dict[int, str
         improvement = [q["skill"] for q in questions if answers.get(q["id"]) != q["answer"]]
         if passed:
             for skill in demonstrated:
-                db.execute("INSERT OR IGNORE INTO skill_validations (student_id, skill, assessment_id, score) VALUES (?, ?, ?, ?)", (student_id, skill, assessment_id, score))
+                db.execute("INSERT OR IGNORE INTO skill_validations (student_id, skill, assessment_id, score, validated_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)", (student_id, skill, assessment_id, score))
     return {"score": score, "passed": passed, "demonstrated": demonstrated, "improvement": improvement}

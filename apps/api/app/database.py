@@ -9,6 +9,7 @@ def connection() -> sqlite3.Connection:
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     db = sqlite3.connect(DB_PATH)
     db.row_factory = sqlite3.Row
+    db.execute("PRAGMA foreign_keys = ON")
     return db
 
 
@@ -49,6 +50,7 @@ def init_db() -> None:
                 skill TEXT NOT NULL,
                 assessment_id INTEGER NOT NULL,
                 score INTEGER NOT NULL,
+                validated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 status TEXT NOT NULL DEFAULT 'Industry Validated',
                 UNIQUE(student_id, skill, assessment_id)
             );
@@ -62,6 +64,10 @@ def init_db() -> None:
             );
             """
         )
+        validation_columns = {row["name"] for row in db.execute("PRAGMA table_info(skill_validations)")}
+        if "validated_at" not in validation_columns:
+            db.execute("ALTER TABLE skill_validations ADD COLUMN validated_at TEXT")
+            db.execute("UPDATE skill_validations SET validated_at = CURRENT_TIMESTAMP WHERE validated_at IS NULL")
 
 
 init_db()
