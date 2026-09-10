@@ -1,0 +1,59 @@
+from pathlib import Path
+import sqlite3
+
+BASE = Path(__file__).resolve().parents[3]
+DB_PATH = BASE / "data" / "skillyntra.db"
+
+
+def connection() -> sqlite3.Connection:
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    db = sqlite3.connect(DB_PATH)
+    db.row_factory = sqlite3.Row
+    return db
+
+
+def init_db() -> None:
+    with connection() as db:
+        db.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS courses (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL UNIQUE,
+                partner TEXT NOT NULL,
+                skills TEXT NOT NULL,
+                placement_rate REAL NOT NULL DEFAULT 0,
+                employer_validation REAL NOT NULL DEFAULT 0,
+                status TEXT NOT NULL DEFAULT 'published'
+            );
+            CREATE TABLE IF NOT EXISTS assessments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                course_id INTEGER NOT NULL,
+                passing_score INTEGER NOT NULL,
+                skills TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'published',
+                FOREIGN KEY(course_id) REFERENCES courses(id)
+            );
+            CREATE TABLE IF NOT EXISTS assessment_questions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                assessment_id INTEGER NOT NULL,
+                question TEXT NOT NULL,
+                options TEXT NOT NULL,
+                answer TEXT NOT NULL,
+                skill TEXT NOT NULL,
+                FOREIGN KEY(assessment_id) REFERENCES assessments(id)
+            );
+            CREATE TABLE IF NOT EXISTS skill_validations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                student_id TEXT NOT NULL,
+                skill TEXT NOT NULL,
+                assessment_id INTEGER NOT NULL,
+                score INTEGER NOT NULL,
+                status TEXT NOT NULL DEFAULT 'Industry Validated',
+                UNIQUE(student_id, skill, assessment_id)
+            );
+            """
+        )
+
+
+init_db()

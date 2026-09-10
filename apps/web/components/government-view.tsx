@@ -1,0 +1,8 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { ArrowUpRight, Minus } from "lucide-react";
+
+const API = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
+type District = { district: string; priority_skill: string; demand: number; capacity: number; gap: number; status: string };
+export default function GovernmentView() { const [districts, setDistricts] = useState<District[]>([]); const [error, setError] = useState(""); useEffect(() => { fetch(`${API}/api/government/districts`).then((response) => response.json()).then(setDistricts).catch(() => setError("District planning data could not be loaded.")); }, []); return <section className="district-view">{error && <div className="error-box">{error}</div>}<div className="district-grid">{districts.map((district) => <article className="district-card" key={district.district}><div className="district-top"><h2>{district.district}</h2><span className={district.gap > 0 ? "shortage" : "balanced"}>{district.gap > 0 ? <ArrowUpRight size={14} /> : <Minus size={14} />}{district.status}</span></div><p>Priority skill: <strong>{district.priority_skill}</strong></p><div className="capacity-bars"><div><span>Demand <b>{district.demand}</b></span><i style={{ width: "100%" }} /></div><div><span>Capacity <b>{district.capacity}</b></span><i style={{ width: `${Math.min(100, district.capacity / Math.max(1, district.demand) * 100)}%` }} /></div></div><div className="district-gap">{district.gap > 0 ? `${district.gap} learner capacity gap` : "Capacity covers observed demand"}</div></article>)}</div>{districts.length === 0 && !error && <div className="loading-box">Loading district signals...</div>}</section>; }
