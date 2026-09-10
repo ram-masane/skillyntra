@@ -52,6 +52,14 @@ def init_db() -> None:
                 status TEXT NOT NULL DEFAULT 'Industry Validated',
                 UNIQUE(student_id, skill, assessment_id)
             );
+            CREATE TABLE IF NOT EXISTS course_enrollments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                student_id TEXT NOT NULL,
+                course_id INTEGER NOT NULL,
+                enrolled_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(student_id, course_id),
+                FOREIGN KEY(course_id) REFERENCES courses(id)
+            );
             """
         )
 
